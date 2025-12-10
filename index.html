@@ -387,19 +387,18 @@ document.addEventListener('DOMContentLoaded', () => {
       'Labour Market': {
         color: '#6CA6CD',
         indicators: [
-          'current wage growth',
-          'median pay growth',
-          'participation rate',
-          'vacancy rate',
+          'Current wage growth',
+          'Median pay growth',
+          'Participation rate',
           'V/U',
-          'unemployment rate'
+          'Unemployment rate'
         ]
       },
       'Macro-Finance': {
         color: '#6FBD92',
         indicators: [
-          'savings ratio',
-          'consumer confidence',
+          'Savings ratio',
+          'Consumer confidence',
           'GDP',
           'FTSE100'
         ]
@@ -829,13 +828,13 @@ document.addEventListener('DOMContentLoaded', () => {
                   }
                   
                   // Labour Market group
-                  if (['current wage growth', 'median pay growth', 'participation rate', 
-                       'vacancy rate', 'V/U', 'unemployment rate'].includes(label)) {
+                  if (['Current wage growth', 'Median pay growth', 'Participation rate', 
+                       , 'V/U', 'Unemployment rate'].includes(label)) {
                     return '#6CA6CD';
                   }
                   
                   // Macro-Finance group
-                  if (['savings ratio', 'consumer confidence', 'GDP', 'FTSE100'].includes(label)) {
+                  if (['Savings ratio', 'Consumer confidence', 'GDP', 'FTSE100'].includes(label)) {
                     return '#6FBD92';
                   }
                   
