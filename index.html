@@ -445,6 +445,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let radarChart = null;
     let indicators = [];
     let entries    = [];
+    let sortedEntries = [];
 
     const MONTH_ORDER = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
 
@@ -614,6 +615,12 @@ document.addEventListener('DOMContentLoaded', () => {
         };
       }).filter(e => e !== null);
 
+      // Sort entries chronologically for backfill logic
+      sortedEntries = [...entries].sort((a, b) => {
+        if (a.year !== b.year) return a.year - b.year;
+        return MONTH_ORDER.indexOf(a.monthCode) - MONTH_ORDER.indexOf(b.monthCode);
+      });
+
       console.log("Parsed entries:", entries.length);
       if (!entries.length) {
         throw new Error("No valid entries parsed from CSV. Check Date format (e.g. '1989 JAN').");
@@ -635,8 +642,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getValuesForYearMonth(year, monthCode) {
-      const e = entries.find(r => r.year === year && r.monthCode === monthCode);
-      return e ? e.values : indicators.map(() => 0);
+      if (!sortedEntries.length) return indicators.map(() => 0);
+
+      const targetIdx = sortedEntries.findIndex(r => r.year === year && r.monthCode === monthCode);
+      const baseValues = (targetIdx !== -1)
+        ? [...sortedEntries[targetIdx].values]
+        : indicators.map(() => null);
+
+      const startBackfillIdx = (targetIdx !== -1) ? targetIdx - 1 : sortedEntries.length - 1;
+
+      return baseValues.map((v, idx) => {
+        if (v !== null && v !== undefined) return v;
+        for (let i = startBackfillIdx; i >= 0; i--) {
+          const candidate = sortedEntries[i].values[idx];
+          if (candidate !== null && candidate !== undefined) return candidate;
+        }
+        return 0; // fallback if nothing found
+      });
     }
 
     function computeGlobalMax() {
