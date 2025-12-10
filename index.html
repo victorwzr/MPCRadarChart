@@ -702,9 +702,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       baseValues.forEach((v, idx) => {
         if (v !== null && v !== undefined) {
-          // Data exists in target month: don't show a source date
           values.push(v);
-          sources.push("N/A");
+          sources.push(baseDateStr || "N/A");
           return;
         }
         let filled = false;
@@ -712,7 +711,6 @@ document.addEventListener('DOMContentLoaded', () => {
           const candidate = sortedEntries[i].values[idx];
           if (candidate !== null && candidate !== undefined) {
             values.push(candidate);
-            // Only set source date if data was actually backfilled (missing in target month)
             sources.push(sortedEntries[i].dateStr || "N/A");
             filled = true;
             break;
