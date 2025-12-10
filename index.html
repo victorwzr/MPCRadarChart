@@ -1,0 +1,712 @@
+<!-- Radar Chart – WordPress embed -->
+<div id="radar-chart-page">
+  <h1>MPC History Radar Chart</h1>
+
+  <div class="controls">
+    <div class="control-group">
+      <h2>Select First Date</h2>
+      <label for="yearA">Year</label>
+      <select id="yearA"></select>
+      <label for="monthA" style="margin-top: 0.6rem;">Month</label>
+      <select id="monthA"></select>
+    </div>
+
+    <div class="control-group">
+      <h2>Select Second Date</h2>
+      <label for="ateB">Year</label>
+      <select id="yearB"></select>
+      <label for="monthB" style="margin-top: 0.6rem;">Month</label>
+      <select id="monthB"></select>
+    </div>
+  </div>
+
+  <div id="radarWrap">
+    <canvas id="radarCanvas"></canvas>
+  </div>
+
+  <div id="error" role="alert"></div>
+</div>
+
+<style>
+  :root {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --color-main: #7e0a0d;
+    --color-second: #ebc6c0;
+    --color-third: #bebebe;
+    --color-muted: #787878;
+    --color-deep: #161c4e;
+    --color-chart1: #376092;
+    --color-chart2: #82AEB1;
+    --color-chart3: #015555;
+    --color-chart4: #4099ED;
+    color-scheme: light;
+  }
+
+  body {
+    margin: 0;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, var(--color-second) 0%, #ffffff 55%);
+    color: #1f1f1f;
+  }
+
+  #radar-chart-page {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 1.75rem 1.5rem 2rem;
+    box-shadow: 0 12px 30px rgba(126, 10, 13, 0.12);
+    border: 1px solid var(--color-third);
+  }
+
+  h1 {
+    margin-top: 0;
+    font-size: 1.6rem;
+    text-align: center;
+    color: var(--color-main);
+  }
+
+  #radar-chart-page .controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .control-group {
+    border-radius: 10px;
+    padding: 0.75rem 0.9rem;
+    background: #fff7f6;
+    border: 1px solid var(--color-second);
+  }
+
+  .control-group h2 {
+    font-size: 0.95rem;
+    margin: 0 0 0.4rem;
+    font-weight: 600;
+    color: var(--color-deep);
+  }
+
+  label {
+    display: block;
+    font-size: 0.85rem;
+    margin-bottom: 0.35rem;
+    color: var(--color-deep);
+    font-weight: 500;
+  }
+
+  select {
+    width: 100%;
+    padding: 0.35rem 0.5rem;
+    border-radius: 6px;
+    border: 1px solid var(--color-third);
+    font-size: 0.9rem;
+    background: #ffffff;
+    color: #1f1f1f;
+    box-sizing: border-box;
+  }
+
+  select:focus {
+    outline: none;
+    border-color: var(--color-main);
+    box-shadow: 0 0 0 2px rgba(126, 10, 13, 0.1);
+  }
+
+  #radarWrap {
+    position: relative;
+    height: 504px;
+    background: white;
+    border-radius: 8px;
+    margin: 1rem 0;
+  }
+
+  #radarCanvas {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+  }
+
+  .note {
+    font-size: 0.78rem;
+    color: var(--color-muted);
+    margin-top: 0.6rem;
+    text-align: right;
+  }
+
+  #error {
+    color: var(--color-main);
+    font-size: 0.85rem;
+    margin-top: 0.75rem;
+    display: none;
+  }
+</style>
+
+<!-- Chart.js CDN (no GitHub links) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+/**
+ * Concentric Bands Plugin for Chart.js Radar Charts
+ * 
+ * This plugin draws filled polygonal bands behind the radar chart to create
+ * a subtle layered background effect. The bands are drawn from outer radius
+ * toward the center with customizable colors.
+ * 
+ * The plugin uses beforeDatasetsDraw hook to ensure bands appear behind
+ * the data lines while grid lines remain visible on top.
+ */
+const concentricBandsPlugin = {
+  id: 'concentricBands',
+  beforeDatasetsDraw(chart, args, options) {
+    const { ctx, scales: { r } } = chart;
+    
+    if (!r) return; // Ensure radial scale exists
+    
+    const centerX = r.xCenter;
+    const centerY = r.yCenter;
+    const outerRadius = r.drawingArea;
+    const labelCount = chart.data.labels.length;
+    
+    // Band colors from outer to inner - using provided palette
+    // Main: #7e0a0d (red), Secondary: #ebc6c0 (light pink), #bebebe (grey), #787878 (dark grey), #161C4E (navy)
+    // Accent: #376092 (blue), #82AEB1 (teal), #015555 (dark teal), #4099ED (light blue)
+    const bandColors = [
+      'rgba(235, 198, 192, 0.25)', // outer: light pink (#ebc6c0)
+      'rgba(190, 190, 190, 0.25)', // mid-outer: grey (#bebebe)
+      'rgba(120, 120, 120, 0.20)', // mid-inner: dark grey (#787878)
+      'rgba(130, 174, 177, 0.25)'  // inner: teal (#82AEB1)
+    ];
+    
+    const bandCount = bandColors.length;
+    
+    // Draw bands from outer to inner so inner bands overlay outer ones
+    for (let b = 0; b < bandCount; b++) {
+      // Calculate radius for this band (outer edge)
+      const outerBandRadius = outerRadius * ((bandCount - b) / bandCount);
+      // Calculate radius for inner edge of this band
+      const innerBandRadius = outerRadius * ((bandCount - b - 1) / bandCount);
+      
+      ctx.save();
+      ctx.globalAlpha = 0.5; // Soften the look with transparency
+      ctx.fillStyle = bandColors[b];
+      
+      // Draw the outer polygon
+      ctx.beginPath();
+      for (let i = 0; i < labelCount; i++) {
+        const angle = (Math.PI * 2 * i) / labelCount - Math.PI / 2;
+        const x = centerX + Math.cos(angle) * outerBandRadius;
+        const y = centerY + Math.sin(angle) * outerBandRadius;
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+      ctx.closePath();
+      ctx.fill();
+      
+      // If not the innermost band, cut out the inner polygon
+      if (b < bandCount - 1) {
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.beginPath();
+        for (let i = 0; i < labelCount; i++) {
+          const angle = (Math.PI * 2 * i) / labelCount - Math.PI / 2;
+          const x = centerX + Math.cos(angle) * innerBandRadius;
+          const y = centerY + Math.sin(angle) * innerBandRadius;
+          if (i === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        }
+        ctx.closePath();
+        ctx.fill();
+      }
+      
+      ctx.restore();
+    }
+  }
+};
+
+// Register the plugin globally with Chart.js
+// Chart.register(concentricBandsPlugin); // Disabled for clean background
+
+// Run after DOM is ready so getElementById finds elements
+document.addEventListener('DOMContentLoaded', () => {
+  (async function() {
+
+    // -------------------------------------------------------
+    // 1. CONFIG: where to load the CSV
+    // -------------------------------------------------------
+    // If CSV is in the SAME folder as this HTML block:
+    //   const DATA_CSV_URL = "MPCRadarDataTest.csv";
+    //
+    // If CSV is a published Google Sheet CSV:
+    //   const DATA_CSV_URL = "https://docs.google.com/spreadsheets/.../pub?output=csv";
+    //
+    // Currently using your Google Sheet (no GitHub link here):
+    // const DATA_CSV_URL = "MPCRadarDataTest.csv";
+    const DATA_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQN43fsnxjkUioVKd1G3DxcCAn0L55xgVklcaGVlwUDKLQ4RriQioilqxnDgoJ4UTjjVgp45Htk7VfT/pub?output=csv";
+
+    console.log("Trying to load CSV from:", DATA_CSV_URL);
+
+    // DOM references
+    const yearASelect  = document.getElementById("yearA");
+    const monthASelect = document.getElementById("monthA");
+    const yearBSelect  = document.getElementById("yearB");
+    const monthBSelect = document.getElementById("monthB");
+    const errorBox     = document.getElementById("error");
+    const canvasEl     = document.getElementById("radarCanvas");
+
+    // quick guard: make sure required elements exist
+    if (!yearASelect || !monthASelect || !yearBSelect || !monthBSelect || !errorBox || !canvasEl) {
+      console.error("Required DOM elements not found. Check IDs: yearA, monthA, yearB, monthB, radarCanvas, error");
+      if (errorBox) {
+        errorBox.textContent = "Page missing required elements. Check page markup.";
+        errorBox.style.display = "block";
+      }
+      return;
+    }
+
+    // Internal data
+    let radarChart = null;
+    let indicators = [];
+    let entries    = [];
+
+    const MONTH_ORDER = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+
+    function showError(msg) {
+      errorBox.textContent = msg;
+      errorBox.style.display = "block";
+    }
+    function hideError() {
+      errorBox.textContent = "";
+      errorBox.style.display = "none";
+    }
+
+    function parseCsv(text) {
+      const lines = text.trim().split(/\r?\n/);
+      const rows = lines.map(line => line.split(","));
+      console.log("CSV rows (including header):", rows.length);
+      return rows;
+    }
+
+    function parseDateStr(dateStr) {
+      if (!dateStr) return null;
+      const parts = dateStr.trim().split(/\s+/);
+      if (parts.length < 2) return null;
+      const year = parseInt(parts[0], 10);
+      const monthCode = parts[1].toUpperCase();
+      if (isNaN(year)) return null;
+      if (!MONTH_ORDER.includes(monthCode)) {
+        console.warn("Unknown month code in Date:", dateStr);
+        return null;
+      }
+      return { year, monthCode };
+    }
+
+    async function loadData() {
+      const res = await fetch(DATA_CSV_URL);
+      console.log("Fetch status:", res.status, res.statusText);
+      if (!res.ok) {
+        throw new Error("Failed to fetch CSV (" + res.status + " " + res.statusText + "). Check DATA_CSV_URL and file path.");
+      }
+      const csvText = await res.text();
+      const rows = parseCsv(csvText);
+      if (rows.length < 2) {
+        throw new Error("CSV has no data rows (rows.length < 2).");
+      }
+
+      const headers = rows[0];
+      const body    = rows.slice(1);
+
+      console.log("Header columns:", headers);
+
+      // 1st col: Date, rest: indicators
+      indicators = headers.slice(1);
+      console.log("Indicators:", indicators);
+
+      entries = body.map(cols => {
+        const dateStr = cols[0];
+        const parsed  = parseDateStr(dateStr);
+        if (!parsed) return null;
+
+        const numericValues = cols.slice(1).map(v => {
+          // Skip #VALUE! and empty strings
+          if (v === "#VALUE!" || (typeof v === "string" && v.trim() === "")) {
+            return null;
+          }
+          const val = parseFloat(v);
+          return Number.isNaN(val) ? 0 : val;
+        });
+
+        return {
+          dateStr,
+          year: parsed.year,
+          monthCode: parsed.monthCode,
+          values: numericValues
+        };
+      }).filter(e => e !== null);
+
+      console.log("Parsed entries:", entries.length);
+      if (!entries.length) {
+        throw new Error("No valid entries parsed from CSV. Check Date format (e.g. '1989 JAN').");
+      }
+    }
+
+    function uniqueYears() {
+      const ys = new Set(entries.map(e => e.year));
+      return Array.from(ys).sort((a,b) => a - b);
+    }
+
+    function monthsForYear(year) {
+      const set = new Set(
+        entries.filter(e => e.year === year).map(e => e.monthCode)
+      );
+      const months = Array.from(set);
+      months.sort((a,b) => MONTH_ORDER.indexOf(a) - MONTH_ORDER.indexOf(b));
+      return months;
+    }
+
+    function getValuesForYearMonth(year, monthCode) {
+      const e = entries.find(r => r.year === year && r.monthCode === monthCode);
+      return e ? e.values : indicators.map(() => 0);
+    }
+
+    function computeGlobalMax() {
+      let max = 0;
+      entries.forEach(e => {
+        e.values.forEach(v => {
+          if (typeof v === "number" && v > max) max = v;
+        });
+      });
+      return max > 0 ? max : 100;
+    }
+
+    // Helper: Compute min and max from the currently displayed data arrays.
+    function getDisplayedMinMax(dataArrays) {
+      let min = Infinity;
+      let max = -Infinity;
+      dataArrays.forEach(arr => {
+        arr.forEach(v => {
+          if (typeof v === "number" && !Number.isNaN(v)) {
+            if (v < min) min = v;
+            if (v > max) max = v;
+          }
+        });
+      });
+      if (min === Infinity) min = 0;
+      if (max === -Infinity) max = 100;
+      return { min, max };
+    }
+
+    // Helper: Compute symmetric tick stops centered on 0.
+    function computeTickStops(minDisplayed, maxDisplayed) {
+      const safeMin = (typeof minDisplayed === 'number' && !Number.isNaN(minDisplayed)) ? minDisplayed : 0;
+      const safeMax = (typeof maxDisplayed === 'number' && !Number.isNaN(maxDisplayed)) ? maxDisplayed : 0;
+      const maxAbsValue = Math.max(Math.abs(safeMin), Math.abs(safeMax));
+      
+      const positiveCandidates = [
+        [0, 0.25, 0.5, 0.75, 1],
+        [0, 0.25, 0.5, 0.75, 1, 3],
+        [0, 0.25, 0.5, 0.75, 1, 3, 5],
+        [0, 0.25, 0.5, 0.75, 1, 3, 5, 10],
+        [0, 0.25, 0.5, 0.75, 1, 3, 5, 10, 20],
+        [0, 0.25, 0.5, 0.75, 1, 3, 5, 10, 20, 50],
+        [0, 0.25, 0.5, 0.75, 1, 3, 5, 10, 20, 50, 100]
+      ];
+
+      let positiveStops = null;
+      for (const stops of positiveCandidates) {
+        const maxStop = stops[stops.length - 1];
+        if (maxAbsValue <= maxStop) {
+          positiveStops = stops;
+          break;
+        }
+      }
+
+      if (!positiveStops) {
+        positiveStops = [...positiveCandidates[positiveCandidates.length - 1]];
+        const extensions = [200, 500, 1000, 2000, 5000, 10000];
+        for (const ext of extensions) {
+          positiveStops.push(ext);
+          if (maxAbsValue <= ext) break;
+        }
+      }
+
+      if (safeMin < 0) {
+        const negativeStops = positiveStops.slice(1).map(v => -v).reverse();
+        return [...negativeStops, ...positiveStops];
+      }
+
+      return positiveStops;
+    }
+
+    function populateYearSelect(selectEl) {
+      const years = uniqueYears();
+      console.log("Years detected:", years);
+      selectEl.innerHTML = "";
+      years.forEach(y => {
+        const opt = document.createElement("option");
+        opt.value = y;
+        opt.textContent = y;
+        selectEl.appendChild(opt);
+      });
+      if (years.length) {
+        selectEl.value = years[years.length - 1];
+      }
+    }
+
+    function populateMonthSelect(selectEl, year) {
+      const months = monthsForYear(year);
+      console.log("Months for year", year, ":", months);
+      selectEl.innerHTML = "";
+      months.forEach(m => {
+        const opt = document.createElement("option");
+        opt.value = m;
+        opt.textContent = m;
+        selectEl.appendChild(opt);
+      });
+      if (months.length) {
+        selectEl.value = months[months.length - 1];
+      }
+    }
+
+    function initSelectors() {
+      populateYearSelect(yearASelect);
+      populateYearSelect(yearBSelect);
+
+      const yearA = parseInt(yearASelect.value, 10);
+      const yearB = parseInt(yearBSelect.value, 10);
+
+      populateMonthSelect(monthASelect, yearA);
+      populateMonthSelect(monthBSelect, yearB);
+    }
+
+    function sanitizeForDisplay(values) {
+      return values.map(v => {
+        if (v === null) return null;
+        if (typeof v === "number" && !Number.isNaN(v)) {
+          return v;
+        }
+        return null;
+      });
+    }
+
+    // Helper: Transform values so that the innermost tick interval is unused.
+    function transformForDeadCenter(values, tickStops) {
+      if (!tickStops || tickStops.length < 2) {
+        return values;
+      }
+      
+      const tick0 = tickStops[0];
+      const tick1 = tickStops[1];
+      const tickLast = tickStops[tickStops.length - 1];
+      const originalSpan = tickLast - tick0;
+      const transformedSpan = tickLast - tick1;
+      
+      return values.map(v => {
+        if (v === null || typeof v !== "number" || Number.isNaN(v)) {
+          return v;
+        }
+        if (originalSpan === 0) {
+          return tick1;
+        }
+        return tick1 + (v - tick0) * transformedSpan / originalSpan;
+      });
+    }
+
+    function initChart() {
+      const ctx = canvasEl.getContext("2d");
+
+      const yearA  = parseInt(yearASelect.value, 10);
+      const monthA = monthASelect.value;
+      const yearB  = parseInt(yearBSelect.value, 10);
+      const monthB = monthBSelect.value;
+
+      const rawA = getValuesForYearMonth(yearA, monthA);
+      const rawB = getValuesForYearMonth(yearB, monthB);
+      const sanitizedA = sanitizeForDisplay(rawA);
+      const sanitizedB = sanitizeForDisplay(rawB);
+
+      const displayedMinMax = getDisplayedMinMax([rawA, rawB]);
+      const tickStops = computeTickStops(displayedMinMax.min, displayedMinMax.max);
+      const scaleMin = tickStops[0];
+      const scaleMax = tickStops[tickStops.length - 1];
+
+      const dataA = transformForDeadCenter(sanitizedA, tickStops);
+      const dataB = transformForDeadCenter(sanitizedB, tickStops);
+
+      const chart = new Chart(ctx, {
+        type: "radar",
+        data: {
+          labels: indicators,
+          datasets: [
+            {
+              label: `${yearA} ${monthA}`,
+              data: dataA,
+              _originalValues: sanitizedA,
+              borderColor: "#7e0a0d",              // main red
+              backgroundColor: "rgba(126, 10, 13, 0.15)",
+              pointBackgroundColor: "#7e0a0d",
+              pointBorderColor: "#ffffff",
+              borderWidth: 2.5,
+              pointRadius: 5,
+              pointBorderWidth: 2,
+              spanGaps: true
+            },
+            {
+              label: `${yearB} ${monthB}`,
+              data: dataB,
+              _originalValues: sanitizedB,
+              borderColor: "#161C4E",              // secondary navy
+              backgroundColor: "rgba(22, 28, 78, 0.15)",
+              pointBackgroundColor: "#161C4E",
+              pointBorderColor: "#ffffff",
+              borderWidth: 2.5,
+              pointRadius: 5,
+              pointBorderWidth: 2,
+              spanGaps: true
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          elements: { line: { tension: 0.2 } },
+          scales: {
+            r: {
+              beginAtZero: false,
+              min: scaleMin,
+              max: scaleMax,
+              ticks: { 
+                display: false
+              },
+              afterBuildTicks: function(scale) {
+                const chart = scale.chart;
+                if (chart._tickStops && chart._tickStops.length > 0) {
+                  scale.min = chart._tickStops[0];
+                  scale.max = chart._tickStops[chart._tickStops.length - 1];
+                  scale.ticks = chart._tickStops.map(value => ({ value }));
+                }
+              },
+              grid: { 
+                circular: false,
+                display: false
+              },
+              pointLabels: {
+                color: '#161C4E',
+                font: {
+                  size: 12,
+                  weight: 600
+                }
+              },
+              angleLines: {
+                display: false
+              }
+            }
+          },
+          plugins: {
+            legend: { 
+              position: "bottom",
+              align: "center",
+              labels: {
+                font: { size: 11, weight: 600 },
+                usePointStyle: true,
+                boxWidth: 8,
+                padding: 16,
+                color: '#161C4E'
+              }
+            },
+            tooltip: { 
+              enabled: true,
+              callbacks: {
+                label: function(context) {
+                  const dataset = context.dataset;
+                  const originalValues = dataset._originalValues;
+                  const index = context.dataIndex;
+                  const originalValue = (originalValues && index < originalValues.length) 
+                    ? originalValues[index] 
+                    : null;
+                  const label = dataset.label || '';
+                  if (originalValue === null || originalValue === undefined) {
+                    return `${label}: N/A`;
+                  }
+                  return `${label}: ${originalValue}`;
+                }
+              }
+            }
+          }
+        }
+      });
+
+      chart._tickStops = tickStops;
+      radarChart = chart;
+    }
+
+    function updateChart() {
+      if (!radarChart) return;
+
+      const yearA  = parseInt(yearASelect.value, 10);
+      const monthA = monthASelect.value;
+      const yearB  = parseInt(yearBSelect.value, 10);
+      const monthB = monthBSelect.value;
+
+      const rawA = getValuesForYearMonth(yearA, monthA);
+      const rawB = getValuesForYearMonth(yearB, monthB);
+      const sanitizedA = sanitizeForDisplay(rawA);
+      const sanitizedB = sanitizeForDisplay(rawB);
+
+      const displayedMinMax = getDisplayedMinMax([rawA, rawB]);
+      const tickStops = computeTickStops(displayedMinMax.min, displayedMinMax.max);
+      const scaleMin = tickStops[0];
+      const scaleMax = tickStops[tickStops.length - 1];
+
+      const dataA = transformForDeadCenter(sanitizedA, tickStops);
+      const dataB = transformForDeadCenter(sanitizedB, tickStops);
+
+      radarChart._tickStops = tickStops;
+
+      radarChart.options.scales.r.min = scaleMin;
+      radarChart.options.scales.r.max = scaleMax;
+
+      radarChart.data.datasets[0].label = `${yearA} ${monthA}`;
+      radarChart.data.datasets[0].data  = dataA;
+      radarChart.data.datasets[0]._originalValues = sanitizedA;
+
+      radarChart.data.datasets[1].label = `${yearB} ${monthB}`;
+      radarChart.data.datasets[1].data  = dataB;
+      radarChart.data.datasets[1]._originalValues = sanitizedB;
+
+      radarChart.update();
+    }
+
+    // Main init
+    try {
+      hideError();
+      await loadData();
+      initSelectors();
+      initChart();
+
+      yearASelect.addEventListener("change", () => {
+        const y = parseInt(yearASelect.value, 10);
+        populateMonthSelect(monthASelect, y);
+        updateChart();
+      });
+      yearBSelect.addEventListener("change", () => {
+        const y = parseInt(yearBSelect.value, 10);
+        populateMonthSelect(monthBSelect, y);
+        updateChart();
+      });
+
+      monthASelect.addEventListener("change", updateChart);
+      monthBSelect.addEventListener("change", updateChart);
+    } catch (e) {
+      console.error(e);
+      showError("Error loading or parsing data: " + e.message);
+    }
+
+  })();
+});
+</script>
+/* GitHub Pages deployment trigger */
