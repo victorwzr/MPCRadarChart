@@ -642,23 +642,42 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getValuesForYearMonth(year, monthCode) {
-      if (!sortedEntries.length) return indicators.map(() => 0);
+      if (!sortedEntries.length) return { values: indicators.map(() => 0), sources: indicators.map(() => "N/A") };
 
       const targetIdx = sortedEntries.findIndex(r => r.year === year && r.monthCode === monthCode);
       const baseValues = (targetIdx !== -1)
         ? [...sortedEntries[targetIdx].values]
         : indicators.map(() => null);
+      const baseDateStr = (targetIdx !== -1) ? sortedEntries[targetIdx].dateStr : null;
 
       const startBackfillIdx = (targetIdx !== -1) ? targetIdx - 1 : sortedEntries.length - 1;
 
-      return baseValues.map((v, idx) => {
-        if (v !== null && v !== undefined) return v;
+      const values = [];
+      const sources = [];
+
+      baseValues.forEach((v, idx) => {
+        if (v !== null && v !== undefined) {
+          values.push(v);
+          sources.push(baseDateStr || "N/A");
+          return;
+        }
+        let filled = false;
         for (let i = startBackfillIdx; i >= 0; i--) {
           const candidate = sortedEntries[i].values[idx];
-          if (candidate !== null && candidate !== undefined) return candidate;
+          if (candidate !== null && candidate !== undefined) {
+            values.push(candidate);
+            sources.push(sortedEntries[i].dateStr || "N/A");
+            filled = true;
+            break;
+          }
         }
-        return 0; // fallback if nothing found
+        if (!filled) {
+          values.push(0);
+          sources.push("N/A");
+        }
       });
+
+      return { values, sources };
     }
 
     function computeGlobalMax() {
@@ -844,8 +863,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const yearB  = parseInt(yearBSelect.value, 10);
       const monthB = monthBSelect.value;
 
-      const rawA = getValuesForYearMonth(yearA, monthA);
-      const rawB = getValuesForYearMonth(yearB, monthB);
+      const resA = getValuesForYearMonth(yearA, monthA);
+      const resB = getValuesForYearMonth(yearB, monthB);
+      const rawA = resA.values;
+      const rawB = resB.values;
+      const sourceA = resA.sources;
+      const sourceB = resB.sources;
       const sanitizedA = sanitizeForDisplay(rawA);
       const sanitizedB = sanitizeForDisplay(rawB);
 
@@ -866,6 +889,7 @@ document.addEventListener('DOMContentLoaded', () => {
               label: `${yearA} ${monthA}`,
               data: dataA,
               _originalValues: sanitizedA,
+              _sourceDates: sourceA,
               borderColor: "#7e0a0d",              // main red
               backgroundColor: "rgba(0, 0, 0, 0)",
               fill: false,
@@ -880,6 +904,7 @@ document.addEventListener('DOMContentLoaded', () => {
               label: `${yearB} ${monthB}`,
               data: dataB,
               _originalValues: sanitizedB,
+              _sourceDates: sourceB,
               borderColor: "#161C4E",              // secondary navy
               backgroundColor: "rgba(0, 0, 0, 0)",
               fill: false,
@@ -972,13 +997,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 label: function(context) {
                   const dataset = context.dataset;
                   const originalValues = dataset._originalValues;
+                  const sourceDates = dataset._sourceDates;
                   const index = context.dataIndex;
                   const originalValue = (originalValues && index < originalValues.length) 
                     ? originalValues[index] 
                     : null;
+                  const sourceDate = (sourceDates && index < sourceDates.length)
+                    ? sourceDates[index]
+                    : null;
                   const label = dataset.label || '';
                   if (originalValue === null || originalValue === undefined) {
                     return `${label}: N/A`;
+                  }
+                  if (sourceDate && sourceDate !== 'N/A') {
+                    return `${label}: ${originalValue} (from ${sourceDate})`;
                   }
                   return `${label}: ${originalValue}`;
                 }
@@ -1000,8 +1032,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const yearB  = parseInt(yearBSelect.value, 10);
       const monthB = monthBSelect.value;
 
-      const rawA = getValuesForYearMonth(yearA, monthA);
-      const rawB = getValuesForYearMonth(yearB, monthB);
+      const resA = getValuesForYearMonth(yearA, monthA);
+      const resB = getValuesForYearMonth(yearB, monthB);
+      const rawA = resA.values;
+      const rawB = resB.values;
+      const sourceA = resA.sources;
+      const sourceB = resB.sources;
       const sanitizedA = sanitizeForDisplay(rawA);
       const sanitizedB = sanitizeForDisplay(rawB);
 
@@ -1022,10 +1058,12 @@ document.addEventListener('DOMContentLoaded', () => {
       radarChart.data.datasets[0].label = `${yearA} ${monthA}`;
       radarChart.data.datasets[0].data  = dataA;
       radarChart.data.datasets[0]._originalValues = sanitizedA;
+      radarChart.data.datasets[0]._sourceDates = sourceA;
 
       radarChart.data.datasets[1].label = `${yearB} ${monthB}`;
       radarChart.data.datasets[1].data  = dataB;
       radarChart.data.datasets[1]._originalValues = sanitizedB;
+      radarChart.data.datasets[1]._sourceDates = sourceB;
 
       radarChart.update();
     }
