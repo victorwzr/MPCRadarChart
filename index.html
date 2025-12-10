@@ -277,9 +277,10 @@ const sectionBackgroundPlugin = {
     const outerRadius = r.drawingArea;
     const labelCount = chart.data.labels.length;
 
-    // Fixed proportions for sections: <0 = 30%, 0-1 = 20%, >1 = 50%
-    const r0 = outerRadius * 0.30; // boundary for 0
-    const r1 = outerRadius * 0.50; // boundary for 1
+    // Boundaries anchored to actual scale values 0 and 1 (with data transform)
+    const transformValue = chart._transformValue || ((v) => v);
+    const r0 = r.getDistanceFromCenterForValue(transformValue(0));
+    const r1 = r.getDistanceFromCenterForValue(transformValue(1));
 
     // Helper to draw a ring section
     const drawRing = (innerR, outerR, color) => {
