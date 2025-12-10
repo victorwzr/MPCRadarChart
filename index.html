@@ -265,6 +265,50 @@ const concentricBandsPlugin = {
   }
 };
 
+// Plugin to draw source dates on backfilled points
+const sourceDateLabelsPlugin = {
+  id: 'sourceDateLabels',
+  afterDatasetsDraw(chart) {
+    const { ctx, scales: { r }, data } = chart;
+    if (!r) return;
+
+    const centerX = r.xCenter;
+    const centerY = r.yCenter;
+    const outerRadius = r.drawingArea;
+    const labelCount = chart.data.labels.length;
+    if (!labelCount) return;
+
+    data.datasets.forEach((dataset) => {
+      const sourceDates = dataset._sourceDates || [];
+      const selectedDate = dataset.label || '';
+
+      data.labels.forEach((label, indicatorIdx) => {
+        const sourceDate = sourceDates[indicatorIdx];
+        // Only show if source differs from selected date
+        if (!sourceDate || sourceDate === 'N/A' || sourceDate === selectedDate) return;
+
+        // Get point position
+        const value = dataset.data[indicatorIdx];
+        if (value === null || value === undefined) return;
+
+        const angle = (Math.PI * 2 * indicatorIdx) / labelCount - Math.PI / 2;
+        const distance = r.getDistanceFromCenterForValue(value);
+        const x = centerX + Math.cos(angle) * distance;
+        const y = centerY + Math.sin(angle) * distance;
+
+        // Draw source date label near the point
+        ctx.save();
+        ctx.fillStyle = dataset.pointBackgroundColor || '#000';
+        ctx.font = 'bold 9px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText(sourceDate, x, y + 7);
+        ctx.restore();
+      });
+    });
+  }
+};
+
 // Plugin to draw background sections with boundaries at 0 and 1
 const sectionBackgroundPlugin = {
   id: 'sectionBackground',
@@ -402,6 +446,7 @@ const evenGridLinesPlugin = {
 // Register the plugins globally with Chart.js
 // Chart.register(concentricBandsPlugin); // Disabled for clean background
 Chart.register(sectionBackgroundPlugin);
+Chart.register(sourceDateLabelsPlugin);
 Chart.register(evenGridLinesPlugin);
 
 // Run after DOM is ready so getElementById finds elements
@@ -997,20 +1042,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 label: function(context) {
                   const dataset = context.dataset;
                   const originalValues = dataset._originalValues;
-                  const sourceDates = dataset._sourceDates;
                   const index = context.dataIndex;
                   const originalValue = (originalValues && index < originalValues.length) 
                     ? originalValues[index] 
                     : null;
-                  const sourceDate = (sourceDates && index < sourceDates.length)
-                    ? sourceDates[index]
-                    : null;
                   const label = dataset.label || '';
                   if (originalValue === null || originalValue === undefined) {
                     return `${label}: N/A`;
-                  }
-                  if (sourceDate && sourceDate !== 'N/A') {
-                    return `${label}: ${originalValue} (from ${sourceDate})`;
                   }
                   return `${label}: ${originalValue}`;
                 }
