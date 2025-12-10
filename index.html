@@ -24,6 +24,8 @@
     <canvas id="radarCanvas"></canvas>
   </div>
 
+  <div id="groupLegend"></div>
+
   <div id="error" role="alert"></div>
 </div>
 
@@ -138,6 +140,41 @@
     font-size: 0.85rem;
     margin-top: 0.75rem;
     display: none;
+  }
+
+  #groupLegend {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.8rem;
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-third);
+  }
+
+  .legend-group {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    font-size: 0.85rem;
+  }
+
+  .legend-color-box {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    margin-top: 2px;
+  }
+
+  .legend-group-name {
+    font-weight: 600;
+    color: var(--color-deep);
+  }
+
+  .legend-items {
+    font-size: 0.75rem;
+    color: var(--color-muted);
+    line-height: 1.4;
   }
 </style>
 
@@ -288,6 +325,31 @@ const evenGridLinesPlugin = {
 // Register the plugin globally with Chart.js
 // Chart.register(concentricBandsPlugin); // Disabled for clean background
 Chart.register(evenGridLinesPlugin);
+Chart.register(labelColorsPlugin = {
+  id: 'labelColors',
+  afterDatasetsDraw(chart) {
+    const { ctx, scales: { r } } = chart;
+    if (!r) return;
+
+    const centerX = r.xCenter;
+    const centerY = r.yCenter;
+    const outerRadius = r.drawingArea;
+    const labelCount = chart.data.labels.length;
+
+    chart.data.labels.forEach((label, i) => {
+      const angle = (Math.PI * 2 * i) / labelCount - Math.PI / 2;
+      const x = centerX + Math.cos(angle) * (outerRadius + 25);
+      const y = centerY + Math.sin(angle) * (outerRadius + 25);
+
+      const { color } = getIndicatorGroup(label);
+
+      ctx.save();
+      ctx.fillStyle = color;
+      ctx.fillRect(x - 6, y - 6, 12, 12);
+      ctx.restore();
+    });
+  }
+});
 
 // Run after DOM is ready so getElementById finds elements
 document.addEventListener('DOMContentLoaded', () => {
@@ -332,6 +394,52 @@ document.addEventListener('DOMContentLoaded', () => {
     let entries    = [];
 
     const MONTH_ORDER = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+
+    // Data grouping configuration
+    const indicatorGroups = {
+      'Inflation': {
+        color: '#E8956F',
+        indicators: [
+          'current CPI inflation',
+          'core inflation',
+          'food price inflation',
+          'services inflation',
+          'household inflation expectations',
+          'services PPI',
+          'corporate GOS'
+        ]
+      },
+      'Labour Market': {
+        color: '#6CA6CD',
+        indicators: [
+          'current wage growth',
+          'median pay growth',
+          'participation rate',
+          'vacancy rate',
+          'V/U',
+          'unemployment rate'
+        ]
+      },
+      'Macro-Finance': {
+        color: '#6FBD92',
+        indicators: [
+          'savings ratio',
+          'consumer confidence',
+          'GDP',
+          'FTSE100'
+        ]
+      }
+    };
+
+    // Helper: Get the group and color for an indicator
+    function getIndicatorGroup(indicator) {
+      for (const [groupName, groupData] of Object.entries(indicatorGroups)) {
+        if (groupData.indicators.includes(indicator)) {
+          return { groupName, color: groupData.color };
+        }
+      }
+      return { groupName: 'Other', color: '#999999' };
+    }
 
     function showError(msg) {
       errorBox.textContent = msg;
@@ -541,6 +649,38 @@ document.addEventListener('DOMContentLoaded', () => {
       populateMonthSelect(monthBSelect, yearB);
     }
 
+    function renderGroupLegend() {
+      const legendEl = document.getElementById("groupLegend");
+      legendEl.innerHTML = "";
+
+      for (const [groupName, groupData] of Object.entries(indicatorGroups)) {
+        const groupDiv = document.createElement("div");
+        groupDiv.className = "legend-group";
+
+        const colorBox = document.createElement("div");
+        colorBox.className = "legend-color-box";
+        colorBox.style.backgroundColor = groupData.color;
+
+        const contentDiv = document.createElement("div");
+
+        const groupTitle = document.createElement("div");
+        groupTitle.className = "legend-group-name";
+        groupTitle.textContent = groupName;
+
+        const itemsList = document.createElement("div");
+        itemsList.className = "legend-items";
+        itemsList.textContent = groupData.indicators.join(", ");
+
+        contentDiv.appendChild(groupTitle);
+        contentDiv.appendChild(itemsList);
+
+        groupDiv.appendChild(colorBox);
+        groupDiv.appendChild(contentDiv);
+
+        legendEl.appendChild(groupDiv);
+      }
+    }
+
     function sanitizeForDisplay(values) {
       return values.map(v => {
         if (v === null) return null;
@@ -746,6 +886,7 @@ document.addEventListener('DOMContentLoaded', () => {
       hideError();
       await loadData();
       initSelectors();
+      renderGroupLegend();
       initChart();
 
       yearASelect.addEventListener("change", () => {
