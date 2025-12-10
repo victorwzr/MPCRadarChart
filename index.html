@@ -316,15 +316,15 @@ const sectionBackgroundPlugin = {
     // Sections: <0 blue, 0-1 grey, >1 coral (scaleMin used for check only)
     const scaleMin = r.min;
     if (scaleMin < 0 && r0 > 0) {
-      drawRing(0, r0, 'rgba(108, 166, 205, 0.15)');
+      drawRing(0, r0, 'rgba(108, 166, 205, 0.18)'); // blue-like from palette
     }
     const innerMid = Math.max(0, r0);
     const outerMid = Math.max(innerMid, r1);
     if (outerMid > innerMid) {
-      drawRing(innerMid, outerMid, 'rgba(190, 190, 190, 0.15)');
+      drawRing(innerMid, outerMid, 'rgba(190, 190, 190, 0.18)'); // grey-like
     }
     if (outerRadius > r1) {
-      drawRing(Math.max(0, r1), outerRadius, 'rgba(232, 149, 111, 0.15)');
+      drawRing(Math.max(0, r1), outerRadius, 'rgba(232, 149, 111, 0.18)'); // coral/red-like
     }
 
     // Draw boundary lines at 0 and 1
@@ -853,7 +853,8 @@ document.addEventListener('DOMContentLoaded', () => {
               data: dataA,
               _originalValues: sanitizedA,
               borderColor: "#7e0a0d",              // main red
-              backgroundColor: "rgba(126, 10, 13, 0.15)",
+              backgroundColor: "rgba(0, 0, 0, 0)",
+              fill: false,
               pointBackgroundColor: "#7e0a0d",
               pointBorderColor: "#ffffff",
               borderWidth: 2.5,
@@ -866,7 +867,8 @@ document.addEventListener('DOMContentLoaded', () => {
               data: dataB,
               _originalValues: sanitizedB,
               borderColor: "#161C4E",              // secondary navy
-              backgroundColor: "rgba(22, 28, 78, 0.15)",
+              backgroundColor: "rgba(0, 0, 0, 0)",
+              fill: false,
               pointBackgroundColor: "#161C4E",
               pointBorderColor: "#ffffff",
               borderWidth: 2.5,
