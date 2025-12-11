@@ -165,41 +165,36 @@
   }
 
   #groupLegend {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 0.8rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.2rem;
     margin-top: 1.25rem;
     padding-top: 1rem;
     border-top: 1px solid var(--color-third);
+    justify-content: center;
   }
 
   .legend-group {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 0.6rem;
     font-size: 0.85rem;
   }
 
   .legend-color-box {
     flex-shrink: 0;
-    width: 16px;
-    height: 16px;
-    border-radius: 3px;
-    margin-top: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 2px;
   }
 
   .legend-group-name {
-    font-weight: 600;
+    font-weight: 500;
     color: var(--color-deep);
-    margin-bottom: 0.3rem;
-    display: block;
   }
 
   .legend-items {
-    font-size: 0.75rem;
-    color: #555555;
-    line-height: 1.5;
-    display: block;
+    display: none;
   }
 </style>
 
