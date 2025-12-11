@@ -350,9 +350,9 @@ const sectionBackgroundPlugin = {
     };
 
     // Draw from outer to inner to avoid overwriting
-    drawRing(r1, outerRadius, '#F4D3D0'); // light red outer (>1 area)
-    drawRing(r0, r1, '#BEBEBE'); // solid grey middle (0-1)
-    drawCircle(r0, '#ADD8E6'); // light blue center (< 0)
+    drawRing(r1, outerRadius, 'rgba(244, 211, 208, 0.5)'); // light red outer (>1 area), 50% opacity
+    drawRing(r0, r1, 'rgba(190, 190, 190, 0.7)'); // grey middle (0-1), 70% opacity
+    drawCircle(r0, 'rgba(173, 216, 230, 0.7)'); // light blue center (< 0), 70% opacity
 
     // Draw boundary lines at 0 and 1
     ctx.save();
