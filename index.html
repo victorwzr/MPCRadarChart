@@ -332,10 +332,10 @@ const sectionBackgroundPlugin = {
       ctx.restore();
     };
 
-    // Sections: fixed rings <0 deeper blue, 0-1 neutral grey, >1 coral
-    drawRing(0, r0, 'rgba(108, 166, 205, 0.35)'); // deeper Labour Market blue
-    drawRing(r0, r1, 'rgba(140, 140, 140, 0.28)'); // more neutral grey
-    drawRing(r1, outerRadius, 'rgba(232, 149, 111, 0.18)'); // coral/red-like
+    // Sections: fixed rings - blue center, grey middle, keep red outer
+    drawRing(0, r0, 'rgba(173, 216, 230, 0.5)'); // light blue center (like image)
+    drawRing(r0, r1, 'rgba(190, 190, 190, 0.4)'); // grey middle band
+    drawRing(r1, outerRadius, 'rgba(232, 149, 111, 0.18)'); // coral/red outer (>1 area)
 
     // Draw boundary lines at 0 and 1
     ctx.save();
