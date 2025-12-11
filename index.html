@@ -719,9 +719,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function buildSegmentMapper(minVal, maxVal) {
-      const NEG_FRAC = 0.30; // below 0 takes 30% of radius
+      const NEG_FRAC = 0.40; // below 0 takes 40% of radius
       const MID_FRAC = 0.20; // 0-1 takes 20%
-      const POS_FRAC = 0.50; // above 1 takes 50%
+      const POS_FRAC = 0.40; // above 1 takes 40%
 
       const safeMin = (typeof minVal === 'number' && !Number.isNaN(minVal)) ? minVal : 0;
       const safeMax = (typeof maxVal === 'number' && !Number.isNaN(maxVal)) ? maxVal : 1;
