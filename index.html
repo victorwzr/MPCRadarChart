@@ -854,6 +854,24 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
+    function hasBackfilledData(sourcesA, sourcesB) {
+      // Check if any data point is backfilled (source date is not 'N/A')
+      const hasBackfillA = sourcesA && sourcesA.some(s => s !== 'N/A');
+      const hasBackfillB = sourcesB && sourcesB.some(s => s !== 'N/A');
+      return hasBackfillA || hasBackfillB;
+    }
+
+    function updateNoteVisibility(sourcesA, sourcesB) {
+      const noteEl = document.getElementById('dataNote');
+      if (!noteEl) return;
+      
+      if (hasBackfilledData(sourcesA, sourcesB)) {
+        noteEl.style.display = 'block';
+      } else {
+        noteEl.style.display = 'none';
+      }
+    }
+
     // Helper: Transform values so that the innermost tick interval is unused.
     function transformForDeadCenter(values, tickStops) {
       if (!tickStops || tickStops.length < 2) {
@@ -1044,6 +1062,8 @@ document.addEventListener('DOMContentLoaded', () => {
       chart._tickStops = tickStops;
       chart._transformValue = (v) => transformForDeadCenter([v], tickStops)[0];
       radarChart = chart;
+      
+      updateNoteVisibility(sourceA, sourceB);
     }
 
     function updateChart() {
@@ -1088,6 +1108,7 @@ document.addEventListener('DOMContentLoaded', () => {
       radarChart.data.datasets[1]._sourceDates = sourceB;
 
       radarChart.update();
+      updateNoteVisibility(sourceA, sourceB);
     }
 
     // Main init
