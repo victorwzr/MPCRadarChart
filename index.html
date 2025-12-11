@@ -844,8 +844,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const yearB  = parseInt(yearBSelect.value, 10);
       const monthB = monthBSelect.value;
 
-      const rawA = getValuesForYearMonth(yearA, monthA);
-      const rawB = getValuesForYearMonth(yearB, monthB);
+      const resA = getValuesForYearMonth(yearA, monthA);
+      const resB = getValuesForYearMonth(yearB, monthB);
+      const rawA = resA.values;
+      const rawB = resB.values;
+      const sourceA = resA.sources;
+      const sourceB = resB.sources;
       const sanitizedA = sanitizeForDisplay(rawA);
       const sanitizedB = sanitizeForDisplay(rawB);
 
@@ -866,6 +870,7 @@ document.addEventListener('DOMContentLoaded', () => {
               label: `${yearA} ${monthA}`,
               data: dataA,
               _originalValues: sanitizedA,
+              _sourceDates: sourceA,
               borderColor: "#7e0a0d",              // main red
               backgroundColor: "rgba(0, 0, 0, 0)",
               fill: false,
@@ -880,6 +885,7 @@ document.addEventListener('DOMContentLoaded', () => {
               label: `${yearB} ${monthB}`,
               data: dataB,
               _originalValues: sanitizedB,
+              _sourceDates: sourceB,
               borderColor: "#161C4E",              // secondary navy
               backgroundColor: "rgba(0, 0, 0, 0)",
               fill: false,
@@ -972,15 +978,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 label: function(context) {
                   const dataset = context.dataset;
                   const originalValues = dataset._originalValues;
+                  const sourceDates = dataset._sourceDates;
                   const index = context.dataIndex;
                   const originalValue = (originalValues && index < originalValues.length) 
                     ? originalValues[index] 
                     : null;
-                  const label = dataset.label || '';
+                  const sourceDate = (sourceDates && index < sourceDates.length) 
+                    ? sourceDates[index] 
+                    : 'N/A';
+                  
+                  // Use actual source date if available, otherwise use dataset label
+                  const displayLabel = (sourceDate && sourceDate !== 'N/A') ? sourceDate : dataset.label;
+                  
                   if (originalValue === null || originalValue === undefined) {
-                    return `${label}: N/A`;
+                    return `${displayLabel}: N/A`;
                   }
-                  return `${label}: ${originalValue}`;
+                  return `${displayLabel}: ${originalValue}`;
                 }
               }
             }
@@ -1000,8 +1013,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const yearB  = parseInt(yearBSelect.value, 10);
       const monthB = monthBSelect.value;
 
-      const rawA = getValuesForYearMonth(yearA, monthA);
-      const rawB = getValuesForYearMonth(yearB, monthB);
+      const resA = getValuesForYearMonth(yearA, monthA);
+      const resB = getValuesForYearMonth(yearB, monthB);
+      const rawA = resA.values;
+      const rawB = resB.values;
+      const sourceA = resA.sources;
+      const sourceB = resB.sources;
       const sanitizedA = sanitizeForDisplay(rawA);
       const sanitizedB = sanitizeForDisplay(rawB);
 
@@ -1022,10 +1039,12 @@ document.addEventListener('DOMContentLoaded', () => {
       radarChart.data.datasets[0].label = `${yearA} ${monthA}`;
       radarChart.data.datasets[0].data  = dataA;
       radarChart.data.datasets[0]._originalValues = sanitizedA;
+      radarChart.data.datasets[0]._sourceDates = sourceA;
 
       radarChart.data.datasets[1].label = `${yearB} ${monthB}`;
       radarChart.data.datasets[1].data  = dataB;
       radarChart.data.datasets[1]._originalValues = sanitizedB;
+      radarChart.data.datasets[1]._sourceDates = sourceB;
 
       radarChart.update();
     }
