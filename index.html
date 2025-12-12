@@ -1057,8 +1057,11 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       if (currentMin === Infinity) currentMin = 0;
       if (currentMax === -Infinity) currentMax = 1;
+      // Expand autoscale range by ±1 around current data
+      const expandedMin = currentMin - 1;
+      const expandedMax = currentMax + 1;
 
-      const mapper = buildSegmentMapper(currentMin, currentMax);
+      const mapper = buildSegmentMapper(expandedMin, expandedMax);
       const tickStops = mapper.tickStops;
       // Use ORIGINAL data range for the scale, NOT the mapped 0-1 range
       const scaleMin = mapper.originalMin;
@@ -1199,6 +1202,8 @@ document.addEventListener('DOMContentLoaded', () => {
       radarChart = chart;
       
       updateNoteVisibility(sourceA, sourceB);
+      // Force a rebuild so ticks and background use mapper on first render
+      chart.update();
     }
 
     function updateChart() {
@@ -1229,8 +1234,11 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       if (currentMin === Infinity) currentMin = 0;
       if (currentMax === -Infinity) currentMax = 1;
+      // Expand autoscale range by ±1 around current data
+      const expandedMin = currentMin - 1;
+      const expandedMax = currentMax + 1;
 
-      const mapper = buildSegmentMapper(currentMin, currentMax);
+      const mapper = buildSegmentMapper(expandedMin, expandedMax);
       const tickStops = mapper.tickStops;
 
       const dataA = sanitizedA.map(v => mapper.mapValue(v));
