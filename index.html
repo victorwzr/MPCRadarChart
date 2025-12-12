@@ -1057,9 +1057,13 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       if (currentMin === Infinity) currentMin = 0;
       if (currentMax === -Infinity) currentMax = 1;
-      // Expand autoscale range by ±1 around current data
-      const expandedMin = currentMin - 1;
-      const expandedMax = currentMax + 1;
+      // Expand autoscale range by ±10% of current data range
+      const rangeInit = currentMax - currentMin;
+      const padInit = (rangeInit === 0)
+        ? 0.1 * (Math.abs(currentMax) > 0 ? Math.abs(currentMax) : 1)
+        : 0.1 * rangeInit;
+      const expandedMin = currentMin - padInit;
+      const expandedMax = currentMax + padInit;
 
       const mapper = buildSegmentMapper(expandedMin, expandedMax);
       const tickStops = mapper.tickStops;
@@ -1234,9 +1238,13 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       if (currentMin === Infinity) currentMin = 0;
       if (currentMax === -Infinity) currentMax = 1;
-      // Expand autoscale range by ±1 around current data
-      const expandedMin = currentMin - 1;
-      const expandedMax = currentMax + 1;
+      // Expand autoscale range by ±10% of current data range
+      const rangeUpd = currentMax - currentMin;
+      const padUpd = (rangeUpd === 0)
+        ? 0.1 * (Math.abs(currentMax) > 0 ? Math.abs(currentMax) : 1)
+        : 0.1 * rangeUpd;
+      const expandedMin = currentMin - padUpd;
+      const expandedMax = currentMax + padUpd;
 
       const mapper = buildSegmentMapper(expandedMin, expandedMax);
       const tickStops = mapper.tickStops;
