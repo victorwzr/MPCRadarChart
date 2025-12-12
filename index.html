@@ -286,7 +286,7 @@ const concentricBandsPlugin = {
 // Plugin to draw background sections with boundaries at 0 and 1 (DYNAMIC)
 const sectionBackgroundPlugin = {
   id: 'sectionBackground',
-  afterDatasetsDraw(chart) {
+  beforeDatasetsDraw(chart) {
     const { ctx, scales: { r } } = chart;
     if (!r) return;
 
@@ -299,6 +299,8 @@ const sectionBackgroundPlugin = {
     const scaleMin = r.min;
     const scaleMax = r.max;
 
+    console.log('Background: scaleMin=', scaleMin, 'scaleMax=', scaleMax);
+
     // Convert data values 0 and 1 to radial distances
     const getRadiusForValue = (value) => {
       if (scaleMax === scaleMin) return outerRadius * 0.5;
@@ -308,6 +310,8 @@ const sectionBackgroundPlugin = {
 
     const r0 = getRadiusForValue(0);  // radius where value = 0
     const r1 = getRadiusForValue(1);  // radius where value = 1
+
+    console.log('r0=', r0, 'r1=', r1, 'outerRadius=', outerRadius);
 
     // Helper to draw a filled circle (for center)
     const drawCircle = (radius, color) => {
@@ -398,7 +402,7 @@ const sectionBackgroundPlugin = {
 // Plugin to draw evenly-spaced circular grid lines (DYNAMIC)
 const evenGridLinesPlugin = {
   id: 'evenGridLines',
-  afterDatasetsDraw(chart) {
+  beforeDatasetsDraw(chart) {
     const { ctx, scales: { r } } = chart;
     
     if (!r) return;
