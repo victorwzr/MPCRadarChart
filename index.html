@@ -415,10 +415,8 @@ const evenGridLinesPlugin = {
     const mapper = chart._mapper;
     if (!mapper) return;
 
-    // Use the mapped tick stops from the mapper to draw grid lines
-    const tickStops = (chart._tickStopsMapped && chart._tickStopsMapped.length)
-      ? chart._tickStopsMapped
-      : [0, 1];
+    // Use the tick stops from the mapper to draw grid lines
+    const tickStops = mapper.tickStops || [0, 1];
     
     ctx.save();
     ctx.strokeStyle = 'rgba(190, 190, 190, 0.3)';
@@ -808,17 +806,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return 1 + t * spanPos;
       };
 
-      // Track both real-value ticks and their mapped positions
-      const tickStopsReal = [];
-      const tickStopsMapped = [];
+      const tickStops = [0, 1];
       const pushTick = (realVal) => {
         const mapped = mapValue(realVal);
         if (mapped === null || Number.isNaN(mapped)) return;
-        if (!tickStopsReal.some(t => Math.abs(t - realVal) < 1e-6)) {
-          tickStopsReal.push(realVal);
-        }
-        if (!tickStopsMapped.some(t => Math.abs(t - mapped) < 1e-6)) {
-          tickStopsMapped.push(mapped);
+        if (!tickStops.some(t => Math.abs(t - mapped) < 1e-6)) {
+          tickStops.push(mapped);
         }
       };
 
@@ -827,14 +820,12 @@ document.addEventListener('DOMContentLoaded', () => {
       pushTick(1);
       pushTick(safeMax);
 
-      tickStopsReal.sort((a, b) => a - b);
-      tickStopsMapped.sort((a, b) => a - b);
+      tickStops.sort((a, b) => a - b);
 
       return {
         mapValue,
         unmapValue,
-        tickStopsReal,
-        tickStopsMapped,
+        tickStops,
         scaleMin: 0,
         scaleMax: 1,
         originalMin: safeMin,
@@ -1075,8 +1066,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const expandedMax = currentMax + padInit;
 
       const mapper = buildSegmentMapper(expandedMin, expandedMax);
-      const tickStopsMapped = mapper.tickStopsMapped;
-      const tickStopsReal = mapper.tickStopsReal;
+      const tickStops = mapper.tickStops;
       // Use ORIGINAL data range for the scale, NOT the mapped 0-1 range
       const scaleMin = mapper.originalMin;
       const scaleMax = mapper.originalMax;
@@ -1135,11 +1125,10 @@ document.addEventListener('DOMContentLoaded', () => {
               },
               afterBuildTicks: function(scale) {
                 const chart = scale.chart;
-                const realTicks = chart._tickStopsReal;
-                if (realTicks && realTicks.length > 0) {
-                  scale.min = Math.min(chart._mapper.originalMin, realTicks[0]);
-                  scale.max = Math.max(chart._mapper.originalMax, realTicks[realTicks.length - 1]);
-                  scale.ticks = realTicks.map(value => ({ value }));
+                if (chart._tickStops && chart._tickStops.length > 0) {
+                  scale.min = chart._tickStops[0];
+                  scale.max = chart._tickStops[chart._tickStops.length - 1];
+                  scale.ticks = chart._tickStops.map(value => ({ value }));
                 }
               },
               grid: { 
@@ -1212,8 +1201,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       // Store mapper on chart for plugins to access
       chart._mapper = mapper;
-      chart._tickStopsMapped = tickStopsMapped;
-      chart._tickStopsReal = tickStopsReal;
+      chart._tickStops = tickStops;
       chart._transformValue = (v) => mapper.mapValue(v);
       radarChart = chart;
       
@@ -1259,15 +1247,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const expandedMax = currentMax + padUpd;
 
       const mapper = buildSegmentMapper(expandedMin, expandedMax);
-      const tickStopsMapped = mapper.tickStopsMapped;
-      const tickStopsReal = mapper.tickStopsReal;
+      const tickStops = mapper.tickStops;
 
       const dataA = sanitizedA.map(v => mapper.mapValue(v));
       const dataB = sanitizedB.map(v => mapper.mapValue(v));
 
       radarChart._mapper = mapper;
-      radarChart._tickStopsMapped = tickStopsMapped;
-      radarChart._tickStopsReal = tickStopsReal;
+      radarChart._tickStops = tickStops;
       radarChart._transformValue = (v) => mapper.mapValue(v);
 
       // Use ORIGINAL data range for the scale display
