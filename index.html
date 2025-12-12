@@ -1048,8 +1048,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const mapper = buildSegmentMapper(globalMinMax.min, globalMinMax.max);
       const tickStops = mapper.tickStops;
-      const scaleMin = mapper.scaleMin;
-      const scaleMax = mapper.scaleMax;
+      // Use ORIGINAL data range for the scale, NOT the mapped 0-1 range
+      const scaleMin = mapper.originalMin;
+      const scaleMax = mapper.originalMax;
 
       const dataA = sanitizedA.map(v => mapper.mapValue(v));
       const dataB = sanitizedB.map(v => mapper.mapValue(v));
@@ -1215,8 +1216,9 @@ document.addEventListener('DOMContentLoaded', () => {
       radarChart._tickStops = tickStops;
       radarChart._transformValue = (v) => mapper.mapValue(v);
 
-      radarChart.options.scales.r.min = mapper.scaleMin;
-      radarChart.options.scales.r.max = mapper.scaleMax;
+      // Use ORIGINAL data range for the scale display
+      radarChart.options.scales.r.min = mapper.originalMin;
+      radarChart.options.scales.r.max = mapper.originalMax;
 
       radarChart.data.datasets[0].label = `${yearA} ${monthA}`;
       radarChart.data.datasets[0].data  = dataA;
